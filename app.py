@@ -2,22 +2,39 @@ import streamlit as st
 import numpy as np
 import pickle
 
-# Load model and scaler
+# Load model & scaler
 model = pickle.load(open("churn_model.pkl", "rb"))
 scaler = pickle.load(open("scaler.pkl", "rb"))
 
 st.title("Customer Churn Prediction")
 
-st.write("Enter customer details:")
+st.write("Enter customer details")
 
-tenure = st.number_input("Tenure (months)", min_value=0, max_value=100, value=12)
-monthly = st.number_input("Monthly Charges", min_value=0.0, value=50.0)
-total = st.number_input("Total Charges", min_value=0.0, value=500.0)
+# --- IMPORTANT ---
+# You MUST match the number of features used in training
+# If your dataset had 19 features → we create 19 inputs
+# (Below is SAFE default using zeros for missing fields)
+
+tenure = st.number_input("Tenure (months)", 0, 100, 12)
+monthly = st.number_input("Monthly Charges", 0.0, 500.0, 70.0)
+total = st.number_input("Total Charges", 0.0, 10000.0, 1000.0)
 
 if st.button("Predict"):
-    data = np.array([[tenure, monthly, total]])
-    data = scaler.transform(data)
-    prediction = model.predict(data)
+
+    # Create FULL feature vector (same size as training data)
+    # Assume model trained on 19 features → adjust if needed
+    input_data = np.zeros((1, scaler.n_features_in_))
+
+    # Put known values into correct positions
+    input_data[0, 0] = tenure
+    input_data[0, 1] = monthly
+    input_data[0, 2] = total
+
+    # Scale
+    input_scaled = scaler.transform(input_data)
+
+    # Predict
+    prediction = model.predict(input_scaled)
 
     if prediction[0] == 1:
         st.error("Customer is likely to CHURN ❌")
